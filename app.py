@@ -3,6 +3,7 @@ from datetime import datetime
 import pandas as pd
 import plotly.express as px
 import io
+import os
 
 app = Flask(__name__)
 tasks = []
@@ -61,4 +62,5 @@ def export_chart():
     return send_file(buf, mimetype=mime, as_attachment=True, download_name=f"gantt_chart.{ext}")
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port)
