@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <title>甘特圖工具</title>
+  <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/uuid@9.0.0/dist/umd/uuidv4.min.js"></script>
+  <style>
+    body { font-family: sans-serif; padding: 20px; }
+    #chart { width: 100%; height: 600px; }
+    label, input, button { display: block; margin: 5px 0; }
+  </style>
+</head>
+<body>
+  <h1>甘特圖工具</h1>
+  <label>甘特圖名稱：<input id="titleInput" placeholder="請輸入名稱" /></label>
+  <button onclick="setTitle()">設定標題</button>
+
+  <h3>新增任務</h3>
+  <label>任務名稱：<input id="taskName" /></label>
+  <label>啟始日：<input id="startDate" type="date" /></label>
+  <label>到期日：<input id="endDate" type="date" /></label>
+  <label>顏色：<input id="color" type="color" /></label>
+  <button onclick="addTask()">新增任務</button>
+
+  <button onclick="exportChart('png')">匯出 PNG</button>
+  <button onclick="exportChart('pdf')">匯出 PDF</button>
+
+  <div id="chart"></div>
+
+  <script>
+    let tasks = []
+    let title = "我的甘特圖"
+
+    async function fetchTasks() {
+      const res = await fetch('/tasks')
+      tasks = await res.json()
+      drawChart()
+    }
+
+    async function setTitle() {
+      const input = document.getElementById('titleInput').value
+      if (!input) return alert("請輸入標題")
+      title = input
+      await fetch('/title', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title })
+      })
+      drawChart()
+    }
+
+    async function addTask() {
+      const name = document.getElementById('taskName').value
+      const start = document.getElementById('startDate').value
+      const end = document.getElementById('endDate').value
+      const color = document.getElementById('color').value
+      if (!name || !start || !end) return alert("請填寫所有欄位")
+      const id = uuidv4()
+      const task = { id, name, start, end, color }
+      await fetch('/tasks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(task)
+      })
+      await fetchTasks()
+    }
+
+    function drawChart() {
+      const data = tasks.map(t => ({
+        x: [t.start, t.end],
+        y: [t.name, t.name],
+        mode: 'lines',
+        line: { width: 20, color: t.color },
+        name: t.name
+      }))
+      const layout = {
+        title,
+        showlegend: false,
+        margin: { l: 150 },
+        xaxis: { type: 'date', title: '時間' },
+        yaxis: { title: '任務', automargin: true }
+      }
+      Plotly.newPlot('chart', data, layout)
+    }
+
+    async function exportChart(format) {
+      const url = `/export?format=${format}`
+      window.open(url, '_blank')
+    }
+
+    fetchTasks()
+  </script>
+</body>
+</html>
