@@ -67,20 +67,32 @@
     }
 
     function drawChart() {
-      const data = tasks.map(t => ({
-        x: [t.start, t.end],
-        y: [t.name, t.name],
-        mode: 'lines',
-        line: { width: 20, color: t.color },
-        name: t.name
-      }))
+      const data = tasks.map(t => {
+        const start = new Date(t.start)
+        const end = new Date(t.end)
+        const duration = (end - start) / (1000 * 60 * 60 * 24)
+        return {
+          x: [duration],
+          y: [t.name],
+          base: t.start,
+          type: 'bar',
+          orientation: 'h',
+          marker: { color: t.color },
+          hoverinfo: 'text',
+          hovertext: `${t.name}<br>${t.start} - ${t.end}`
+        }
+      })
+
       const layout = {
         title,
+        barmode: 'stack',
+        xaxis: { title: '時間', type: 'date', tickformat: '%b %Y' },
+        yaxis: { title: '任務', automargin: true },
         showlegend: false,
         margin: { l: 150 },
-        xaxis: { type: 'date', title: '時間' },
-        yaxis: { title: '任務', automargin: true }
+        height: 500 + tasks.length * 30
       }
+
       Plotly.newPlot('chart', data, layout)
     }
 

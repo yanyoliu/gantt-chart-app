@@ -1,7 +1,7 @@
 from flask import Flask, request, send_file, jsonify, render_template
 from datetime import datetime
 import pandas as pd
-import plotly.express as px
+import plotly.graph_objects as go
 import io
 import os
 
@@ -41,10 +41,31 @@ def export_chart():
     df = pd.DataFrame(tasks)
     if df.empty:
         return "沒有任務可供匯出", 400
+
     df['Start'] = pd.to_datetime(df['start'])
     df['Finish'] = pd.to_datetime(df['end'])
-    fig = px.timeline(df, x_start="Start", x_end="Finish", y="name", color="color", title=gantt_title)
-    fig.update_yaxes(autorange="reversed")
+
+    fig = go.Figure()
+    for _, row in df.iterrows():
+        fig.add_trace(go.Bar(
+            x=[(row['Finish'] - row['Start']).days],
+            y=[row['name']],
+            base=row['Start'],
+            orientation='h',
+            marker=dict(color=row['color']),
+            name=row['name'],
+            hovertemplate=f"{row['name']}<br>開始: {row['Start'].date()}<br>結束: {row['Finish'].date()}<extra></extra>"
+        ))
+
+    fig.update_layout(
+        title=gantt_title,
+        barmode='stack',
+        xaxis=dict(title='時間', type='date', tickformat='%b %Y'),
+        yaxis=dict(title='任務'),
+        showlegend=False,
+        height=500 + len(df) * 30,
+        margin=dict(l=150)
+    )
 
     format = request.args.get('format', 'png')
     buf = io.BytesIO()
